@@ -1,11 +1,15 @@
 mod lexer;
+mod node;
+mod parser;
+mod visitor;
 
 use std::{fs::File, io::Read};
 
-use clap::Parser;
-use lexer::Lexer;
+use clap::Parser as ClapParser;
+use parser::Parser;
+use visitor::Visitor;
 
-#[derive(Parser)]
+#[derive(ClapParser)]
 struct Args {
     target: Option<String>,
 }
@@ -17,9 +21,13 @@ fn main() {
     let makefile = look_for_makefile();
 
     // preprocess makefile
-    preprocess_makefile(makefile);
+    let mut parser = preprocess_makefile(makefile);
 
     // parse makefile
+    let program = parser.parse();
+    let s = program.walk_to_string(Visitor::new_string_visitor());
+
+    println!("{s}");
 
     // run target and corresponding recipe
 }
@@ -35,28 +43,34 @@ fn look_for_makefile() -> File {
     panic!("No makefile found. Stop");
 }
 
-fn preprocess_makefile(mut file: File) -> Lexer {
+fn preprocess_makefile(mut file: File) -> Parser {
     let mut s = "".to_string();
     file.read_to_string(&mut s).unwrap();
     // process `new line` operator
     let mut res = vec![];
     let mut lines = s.lines();
-    while let Some(mut line) = lines.next() {
+    while let Some(line) = lines.next() {
         if line.is_empty() {
             continue;
         }
+        let mut line = line.to_string();
         let mut cur_line: String = "".to_string();
         while line.ends_with("\\") {
-            cur_line += line.strip_suffix("\\").unwrap();
+            cur_line += line.strip_suffix('\\').unwrap();
             if let Some(new_line) = lines.next() {
-                line = new_line;
+                line = new_line
+                    .chars()
+                    .into_iter()
+                    .skip_while(|x| x.is_whitespace())
+                    .collect();
             } else {
                 panic!("last line cannot end with `\\`");
             }
         }
-        cur_line += line;
+        cur_line += &line;
         res.push(cur_line);
     }
     let res = res.join("\n");
-    Lexer::new(res)
+    println!("preprocess result:\n{res}");
+    Parser::new(res)
 }
