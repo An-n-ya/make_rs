@@ -1,22 +1,4 @@
-use crate::{
-    node::Node,
-    parser::{AssignStmt, DirectiveStmt, RuleStmt, VisitorTrait},
-};
-
-#[derive(Clone, Copy)]
-pub enum Visitor {
-    String(PrintVisitor),
-    Node(NodeVisitor),
-}
-
-impl Visitor {
-    pub fn new_string_visitor() -> Self {
-        Self::String(PrintVisitor {})
-    }
-    pub fn new_node_visitor() -> Self {
-        Self::Node(NodeVisitor {})
-    }
-}
+use crate::parser::{AssignStmt, DirectiveStmt, RuleStmt, Visitor};
 
 #[derive(Clone, Copy)]
 pub struct PrintVisitor {}
@@ -24,9 +6,15 @@ pub struct PrintVisitor {}
 #[derive(Clone, Copy)]
 pub struct NodeVisitor {}
 
-impl VisitorTrait<String> for PrintVisitor {
-    fn visit_rule(&self, t: &RuleStmt) -> String {
-        format!(
+impl PrintVisitor {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
+impl Visitor for PrintVisitor {
+    fn visit_rule(&mut self, t: &RuleStmt) {
+        println!(
             "RuleStmt{{target:{}, prerequisite: {:?}, command: {:?}}}",
             t.target,
             t.prerequisite,
@@ -36,25 +24,25 @@ impl VisitorTrait<String> for PrintVisitor {
         )
     }
 
-    fn visit_assign(&self, t: &AssignStmt) -> String {
+    fn visit_assign(&mut self, t: &AssignStmt) {
         todo!()
     }
 
-    fn visit_directive(&self, t: &DirectiveStmt) -> String {
+    fn visit_directive(&mut self, t: &DirectiveStmt) {
         todo!()
     }
 }
 
-impl VisitorTrait<Node> for NodeVisitor {
-    fn visit_rule(&self, t: &RuleStmt) -> Node {
+impl Visitor for NodeVisitor {
+    fn visit_rule(&mut self, t: &RuleStmt) {
         todo!()
     }
 
-    fn visit_assign(&self, t: &AssignStmt) -> Node {
+    fn visit_assign(&mut self, t: &AssignStmt) {
         todo!()
     }
 
-    fn visit_directive(&self, t: &DirectiveStmt) -> Node {
+    fn visit_directive(&mut self, t: &DirectiveStmt) {
         todo!()
     }
 }

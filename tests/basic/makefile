@@ -2,7 +2,6 @@ edit : main.o kbd.o command.o display.o \
        insert.o search.o files.o utils.o
 	cc -o edit main.o kbd.o command.o display.o \
 				insert.o search.o files.o utils.o
-
 main.o : main.c defs.h
 	cc -c main.c
 kbd.o : kbd.c defs.h command.h

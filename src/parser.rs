@@ -1,25 +1,32 @@
 use core::panic;
 use std::collections::HashMap;
 
-use crate::{
-    lexer::{Command, Lexer, Token},
-    node::Node,
-    visitor::Visitor,
-};
+use crate::lexer::{Command, Lexer, Token};
 
-pub type Statement = Box<dyn StatementTrait>;
-
-pub trait StatementTrait {
-    fn walk_to_string(&self, visitor: Visitor) -> String;
-    fn walk_to_node(&self, visitor: Visitor) -> Node;
+pub fn walk_stmt<V: Visitor>(visitor: &mut V, stmt: &Statement) {
+    match stmt {
+        Statement::RuleStmt(s) => visitor.visit_rule(s),
+        Statement::AssignStmt(s) => visitor.visit_assign(s),
+        Statement::DirectiveStmt(s) => visitor.visit_directive(s),
+    };
 }
-pub trait VisitorTrait<T> {
-    fn visit_rule(&self, t: &RuleStmt) -> T;
-    fn visit_assign(&self, t: &AssignStmt) -> T;
-    fn visit_directive(&self, t: &DirectiveStmt) -> T;
+pub trait Visitor: Sized {
+    fn visit_rule(&mut self, t: &RuleStmt);
+    fn visit_assign(&mut self, t: &AssignStmt);
+    fn visit_directive(&mut self, t: &DirectiveStmt);
+    fn visit_program(&mut self, t: &Program) {
+        for stmt in &t.statements {
+            walk_stmt(self, stmt);
+        }
+    }
 }
 
-#[derive(Debug)]
+pub enum Statement {
+    RuleStmt(RuleStmt),
+    AssignStmt(AssignStmt),
+    DirectiveStmt(DirectiveStmt),
+}
+
 pub struct RuleStmt {
     pub target: String,
     pub prerequisite: Vec<String>,
@@ -27,49 +34,6 @@ pub struct RuleStmt {
 }
 pub struct AssignStmt {}
 pub struct DirectiveStmt {}
-
-impl StatementTrait for RuleStmt {
-    fn walk_to_string(&self, visitor: Visitor) -> String {
-        match visitor {
-            Visitor::String(v) => v.visit_rule(self),
-            Visitor::Node(v) => panic!("wrong visitor"),
-        }
-    }
-    fn walk_to_node(&self, visitor: Visitor) -> Node {
-        match visitor {
-            Visitor::Node(v) => v.visit_rule(self),
-            Visitor::String(v) => panic!("wrong visitor"),
-        }
-    }
-}
-impl StatementTrait for AssignStmt {
-    fn walk_to_string(&self, visitor: Visitor) -> String {
-        match visitor {
-            Visitor::String(v) => v.visit_assign(self),
-            Visitor::Node(v) => panic!("wrong visitor"),
-        }
-    }
-    fn walk_to_node(&self, visitor: Visitor) -> Node {
-        match visitor {
-            Visitor::Node(v) => v.visit_assign(self),
-            Visitor::String(v) => panic!("wrong visitor"),
-        }
-    }
-}
-impl StatementTrait for DirectiveStmt {
-    fn walk_to_string(&self, visitor: Visitor) -> String {
-        match visitor {
-            Visitor::String(v) => v.visit_directive(self),
-            Visitor::Node(v) => panic!("wrong visitor"),
-        }
-    }
-    fn walk_to_node(&self, visitor: Visitor) -> Node {
-        match visitor {
-            Visitor::Node(v) => v.visit_directive(self),
-            Visitor::String(v) => panic!("wrong visitor"),
-        }
-    }
-}
 
 pub struct Program {
     statements: Vec<Statement>,
@@ -164,28 +128,10 @@ impl Parser {
             }
         }
 
-        Box::new(RuleStmt {
+        Statement::RuleStmt(RuleStmt {
             target,
             prerequisite,
             commands,
         })
-    }
-}
-
-impl Program {
-    pub fn walk_to_node(&self, visitor: Visitor) -> Node {
-        let mut node = Node::default();
-        for stmt in &self.statements {
-            node = stmt.walk_to_node(visitor);
-        }
-        node
-    }
-    pub fn walk_to_string(&self, visitor: Visitor) -> String {
-        let mut s = "".to_string();
-        for stmt in &self.statements {
-            s.push_str(&stmt.walk_to_string(visitor));
-            s.push('\n');
-        }
-        s
     }
 }

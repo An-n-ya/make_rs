@@ -6,8 +6,9 @@ mod visitor;
 use std::{fs::File, io::Read};
 
 use clap::Parser as ClapParser;
-use parser::Parser;
-use visitor::Visitor;
+use parser::{Parser, Visitor};
+
+use crate::visitor::PrintVisitor;
 
 #[derive(ClapParser)]
 struct Args {
@@ -25,11 +26,10 @@ fn main() {
 
     // parse makefile
     let program = parser.parse();
-    let s = program.walk_to_string(Visitor::new_string_visitor());
-
-    println!("{s}");
 
     // run target and corresponding recipe
+    let mut visitor = PrintVisitor::new();
+    visitor.visit_program(&program);
 }
 
 fn look_for_makefile() -> File {
