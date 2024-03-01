@@ -1,3 +1,4 @@
+use core::fmt;
 use std::io::{self, Cursor, Read, Seek};
 
 pub struct Lexer {
@@ -15,7 +16,7 @@ pub enum Token {
     ConfigVariable(String), //.PRECIPEPREFIX
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Command {
     pub command: String,
     pub args: Vec<String>,
@@ -85,7 +86,8 @@ impl Lexer {
     pub fn next_command(&mut self) -> Command {
         let command = self.read_word();
         let line = self.read_line();
-        let args = line.split(' ').map(|s| s.to_string()).collect();
+        let args: Vec<String> = line.split(' ').map(|s| s.to_string()).collect();
+        let args = args.into_iter().filter(|x| !x.is_empty()).collect();
         Command { command, args }
     }
 

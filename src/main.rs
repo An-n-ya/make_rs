@@ -7,6 +7,7 @@ use std::{fs::File, io::Read};
 
 use clap::Parser as ClapParser;
 use parser::{Parser, Visitor};
+use visitor::NodeVisitor;
 
 use crate::visitor::PrintVisitor;
 
@@ -30,6 +31,10 @@ fn main() {
     // run target and corresponding recipe
     let mut visitor = PrintVisitor::new();
     visitor.visit_program(&program);
+
+    let mut visitor = NodeVisitor::new();
+    visitor.visit_program(&program);
+    visitor.run(args.target);
 }
 
 fn look_for_makefile() -> File {

@@ -36,7 +36,7 @@ pub struct AssignStmt {}
 pub struct DirectiveStmt {}
 
 pub struct Program {
-    statements: Vec<Statement>,
+    pub statements: Vec<Statement>,
     symbol_table: HashMap<Token, String>,
 }
 
