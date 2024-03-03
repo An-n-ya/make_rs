@@ -1,4 +1,3 @@
-use core::fmt;
 use std::io::{self, Cursor, Read, Seek};
 
 pub struct Lexer {

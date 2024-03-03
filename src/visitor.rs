@@ -1,15 +1,15 @@
-use std::{cell::RefCell, collections::HashMap, env, fs, ops::IndexMut, rc::Rc};
+use std::{collections::HashMap, env, fs};
 
 use crate::{
-    node::{Node, NodeType},
+    node::{Node, NodeRaw, NodeType},
     parser::{walk_stmt, AssignStmt, DirectiveStmt, RuleStmt, Visitor},
 };
 
 pub struct PrintVisitor {}
 
 pub struct NodeVisitor {
-    node_map: HashMap<String, Rc<RefCell<Node>>>,
-    default_target: Option<Rc<RefCell<Node>>>,
+    node_map: HashMap<String, Node>,
+    default_target: Option<Node>,
 }
 
 impl PrintVisitor {
@@ -68,20 +68,16 @@ impl NodeVisitor {
         }
     }
 
-    fn topo_sort(node: Rc<RefCell<Node>>) -> Vec<Rc<RefCell<Node>>> {
+    fn topo_sort(node: Node) -> Vec<Node> {
         #[derive(PartialEq, Eq)]
         enum Status {
             Visiting,
             Visited,
         }
         let mut status_map: HashMap<String, Status> = HashMap::new();
-        let mut res: Vec<Rc<RefCell<Node>>> = vec![];
+        let mut res: Vec<Node> = vec![];
 
-        fn dfs(
-            node: Rc<RefCell<Node>>,
-            status_map: &mut HashMap<String, Status>,
-            res: &mut Vec<Rc<RefCell<Node>>>,
-        ) -> bool {
+        fn dfs(node: Node, status_map: &mut HashMap<String, Status>, res: &mut Vec<Node>) -> bool {
             let node_ref = node.borrow();
             let name = node_ref.name.clone();
             let dependencies = &node_ref.dependencies;
@@ -115,7 +111,7 @@ impl Visitor for NodeVisitor {
             if self.node_map.contains_key(dep) {
                 deps.push(self.node_map[dep].clone());
             } else {
-                let new_node = Node::new_unknown(dep.clone());
+                let new_node = NodeRaw::new_unknown(dep.clone());
                 deps.push(new_node.clone());
                 self.node_map.insert(dep.clone(), new_node);
             }
@@ -123,17 +119,20 @@ impl Visitor for NodeVisitor {
         if self.node_map.contains_key(name) {
             if let Some(node_inside) = self.node_map.get_mut(name) {
                 if &node_inside.borrow().node_type == &NodeType::Unknown {
-                    *node_inside.borrow_mut() = Node::new_target_raw(name.clone(), commands, deps);
+                    *node_inside.borrow_mut() =
+                        NodeRaw::new_target_raw(name.clone(), commands, deps);
                 } else if let NodeType::File { .. } = &node_inside.borrow().node_type {
-                    // overwite the existing file
+                    // overwrite the existing file
                     // *node_inside.borrow_mut() = Node::new_target_raw(name.clone(), commands, deps);
                 } else {
                     panic!("replicated target {}", name);
                 }
             }
         } else {
-            self.node_map
-                .insert(name.clone(), Node::new_target(name.clone(), commands, deps));
+            self.node_map.insert(
+                name.clone(),
+                NodeRaw::new_target(name.clone(), commands, deps),
+            );
         }
 
         if self.default_target.is_none() {
@@ -162,7 +161,7 @@ impl Visitor for NodeVisitor {
                     .to_os_string()
                     .into_string()
                     .unwrap();
-                self.node_map.insert(name.clone(), Node::new_file(name));
+                self.node_map.insert(name.clone(), NodeRaw::new_file(name));
             }
         }
         for stmt in &t.statements {
